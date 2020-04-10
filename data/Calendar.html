@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1,user-scalable=no"
+    />
+    <!--
+  ArcGIS API for JavaScript, https://js.arcgis.com
+  For more information about the widgets-legend sample, read the original sample description at developers.arcgis.com.
+  https://developers.arcgis.com/javascript/latest/sample-code/widgets-legend/index.html
+  -->
+<title>Legend widget - 4.15</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.15/esri/themes/light/main.css"
+    />
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+    </style>
+
+    <script src="https://js.arcgis.com/4.15/"></script>
+    <script>
+      require([
+        "esri/views/MapView",
+        "esri/widgets/Legend",
+        "esri/WebMap"
+      ], function(MapView, Legend, WebMap) {
+        var webmap = new WebMap({
+          portalItem: {
+            // autocasts as new PortalItem()
+            id: "e80e6c0fc34d43ee8a939e05d741244b"
+          }
+        });
+
+        var view = new MapView({
+          container: "viewDiv",
+          map: webmap,zoom:11
+        });
+
+        view.when(function() {
+          // get the first layer in the collection of operational layers in the WebMap
+          // when the resources in the MapView have loaded.
+          var featureLayer = webmap.layers.getItemAt(1);
+
+          var legend = new Legend({
+            view: view,
+            layerInfos: [
+              {
+                layer: featureLayer,
+                title: "Ratings score"
+              }
+            ]
+          });
+
+          // Add widget to the bottom right corner of the view
+          view.ui.add(legend, "bottom-right");
+        });
+      });
+    </script>
+  </head>
+
+  <body class="calcite">
+    <div id="viewDiv"></div>
+  </body>
+</html>
