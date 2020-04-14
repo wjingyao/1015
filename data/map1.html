@@ -1,0 +1,358 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+
+    <!--
+  ArcGIS API for JavaScript, https://js.arcgis.com
+  For more information about the featurereduction-cluster-filter-slider sample, read the original sample description at developers.arcgis.com.
+  https://developers.arcgis.com/javascript/latest/sample-code/featurereduction-cluster-filter-slider/index.html
+  -->
+<title>Filter clustered points with a slider - 4.14</title>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.14/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.14/"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA26vu1UPumyKALluU3r0xl3Jt0nqI839o&libraries=geometry">
+	</script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #infoDiv {
+        padding: 10px;
+        width: 275px;
+      }
+      #sliderValue {
+        font-weight: bolder;
+      }
+      #legendDiv {
+        width: 260px;
+      }
+      #description {
+        padding: 10px 0 10px 0;
+      }
+    </style>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/FeatureLayer",
+        "esri/widgets/Legend",
+        "esri/widgets/Slider",
+        "esri/widgets/Expand","esri/WebMap","esri/tasks/support/Query","esri/Graphic"
+      ], function(Map, MapView, FeatureLayer, Legend, Slider, Expand,WebMap,Query,Graphic) {
+        // Configure clustering on the layer with a
+        // popupTemplate displaying the predominant
+        // fuel type of the power plants in the cluster
+
+        const clusterConfig = {
+          type: "cluster",
+          clusterRadius: "40px",
+          popupTemplate: {
+            content: [
+              {
+                type: "text",
+                text: "This cluster represents <b>{cluster_count}</b> features."
+              },
+              {
+                type: "text",
+                text:
+                  "The predominant fuel type in this cluster of power plants is <b>{cluster_type_fuel1}</b>."
+              }
+            ]
+          }
+        };
+
+		var map = new WebMap({
+		  portalItem: { // autocasts as new PortalItem()
+			id: "e91a68b6de2d43b5a6f450a0b9b5300a"
+		  }
+		});
+
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          extent: {
+            spatialReference: {
+              latestWkid:102100,
+              wkid:3857
+            },
+            XMin:-1.3665946390236566E7
+			,YMin:5939453.053788646
+			,XMax:-1.3563620716794353E7
+			,YMax:6130343.931511228
+          },zoom:11
+        });
+		const featureLayer = new FeatureLayer({
+		  portalItem: { // autocasts as new PortalItem()
+			id: "f7535e5cd7c8449692764fb3d7d10e10"
+		  }
+		});
+		
+		var pricelist= [];
+		const query = new Query();
+			
+			query.outFields = ["neighbourhood_group_cleansed","price","latitude","longitude"];
+
+		featureLayer.queryFeatures(query).then(function(results){
+		
+		  for(var i=0; i<=results.features.length-1;i++)
+		  {
+			newarray =[];
+			newarray.push(results.features[i].attributes.neighbourhood_group_cleansed);
+			newarray.push(results.features[i].attributes.price);
+			newarray.push(results.features[i].attributes.latitude);
+			newarray.push(results.features[i].attributes.longitude);
+			pricelist.push(newarray);
+			
+		  }
+		  
+		});
+		console.log(pricelist);
+		setTimeout(function(){
+		  
+			pricelist.sort();
+			var priceamt = 0;
+			var bound = new google.maps.LatLngBounds();
+			var neighbour=pricelist[0][0];
+			var counter=0;
+			for (i = 0; i < pricelist.length; i++) {
+			  if(pricelist[i][0]!=neighbour)
+			  {
+				test(bound.getCenter().lat(),bound.getCenter().lng(),view,neighbour,counter,priceamt);
+				priceamt=pricelist[i][1];
+				counter=1;
+				neighbour=pricelist[i][0];
+				var bound = new google.maps.LatLngBounds();
+				bound.extend( new google.maps.LatLng(pricelist[i][2], pricelist[i][3]) );
+			  }
+			  else
+			  {
+				bound.extend( new google.maps.LatLng(pricelist[i][2], pricelist[i][3]) );
+				priceamt+=pricelist[i][1];
+				counter=counter+1;
+			  }
+			}
+			//console.log( bound.getCenter() );
+			//test(bound.getCenter().lat(),bound.getCenter().lng(),view)
+			
+		},10000);
+
+
+
+		
+        
+      
+	  function test(lat,lon,view,textword,sizec,price)
+	  {
+		var point = {
+          type: "point", // autocasts as new Point()
+          longitude: lon,
+          latitude: lat
+        };
+
+        // Create a symbol for drawing the point
+        var wordSymbol = {
+          type: "text", // autocasts as new SimpleMarkerSymbol()
+          color: "white",
+		  haloColor: "black",
+  haloSize: "1px",
+  
+  xoffset: 3,
+  yoffset: 3,
+		  text:textword,
+          outline: {
+            // autocasts as new SimpleLineSymbol()
+            color: [255, 255, 255],
+            width: 2
+          },
+		  font: {  // autocasts as new Font()
+			size: 12,
+			family: "Josefin Slab",
+			weight: "bold"
+			}
+        };
+		var avgprice=parseInt(price/sizec);
+		var colorcode =[81, 24, 69];
+		if(avgprice>150)
+		{
+			colorcode =[81, 24, 69];
+		}
+		else if(avgprice>85)
+		{
+			colorcode =[199, 0, 57];
+		}
+
+		else{
+			colorcode =[255, 87, 51];
+		}
+		var template = {
+          // autocasts as new PopupTemplate()
+          title: textword,
+          content: sizec+" Airbnbs with average price of $"+avgprice+"."
+        };
+        // Create a graphic and add the geometry and symbol to it
+        var pointGraphic = new Graphic({
+          geometry: point,
+          symbol: wordSymbol
+        });
+		if(sizec<20)
+		{
+			sizec=20
+		}
+		else if(sizec>50)
+		{
+			sizec=30
+		}
+		
+		
+		var markerSymbol = {
+          type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+          color: colorcode,style: "diamond",
+		  size: sizec,yoffset: 10,
+          outline: {
+            // autocasts as new SimpleLineSymbol()
+            color: [0, 0, 0],
+            width: 2
+          }
+        };
+		
+        // Create a graphic and add the geometry and symbol to it
+        var circlesymbol = new Graphic({
+          geometry: point,popupTemplate:template,
+          symbol: markerSymbol
+        });
+		view.graphics.addMany([circlesymbol,pointGraphic]);
+	  }
+const legend = new Legend({
+          view: view,
+          container: "legendDiv"
+        });
+        view.ui.add("infoDiv", "top-right");
+      });
+	  
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <div id="infoDiv" class="esri-widget">
+	<div id="toc-main" dojotype="dojo.dnd.Source" dojoattachpoint="_dndSourceNode" skipform="true" class="dojoDndSource dojoDndTarget dojoDndContainer">
+	<div id="featColl_4715_legend" class="esriLeadingPadding2 toc_toggle_legend" style="display: block; position: relative;" widgetid="featColl_4715_legend">
+        <div id="featColl_4715_legend_featColl_4715" style="display: block;" class="esriLegendService">
+            <table width="95%">
+                <tbody>
+                    <tr>
+                        <td align="left"><span class="esriLegendServiceLabel"> </span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="featColl_4715_legend_featColl_4715_fc_featColl_4715" style="display: block;" class="">
+                <table class="esriLegendLayerLabel" width="95%">
+                    <tbody>
+                        <tr>
+                            <td align="left"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="esriLegendLayer" width="95%" cellspacing="0" cellpadding="0">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table width="95%">
+                                    <tbody>
+                                        <tr>
+                                            <td align="left">Prices by neighbourhood_group_cleansed</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="esriLegendLayer" width="95%" cellspacing="0" cellpadding="0">
+                    <tbody>
+                        <tr>
+                            <td width="35" align="center">
+                                <div style="width:30px;height:30px;">
+                                    <svg overflow="hidden" width="30" height="30" style="touch-action: none;">
+                                        <defs></defs>
+                                        <path fill="rgb(81, 24, 69)" fill-opacity="1" stroke="rgb(194, 194, 194)" stroke-opacity="0.25098039215686274" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" path="M -4,0 L 0,-4 L 4,0 L 0,4 L -4,0 Z" d="M-4 0L 0-4L 4 0L 0 4L-4 0Z" fill-rule="evenodd" stroke-dasharray="none" dojoGfxStrokeStyle="solid" transform="matrix(1.00000000,0.00000000,0.00000000,1.00000000,15.00000000,15.00000000)"></path>
+                                    </svg>
+                                </div>
+                            </td>
+                            <td>
+                                <table width="95%">
+                                    <tbody>
+                                        <tr>
+                                            <td align="left">&gt; 150</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="35" align="center">
+                                <div style="width:30px;height:30px;">
+                                    <svg overflow="hidden" width="30" height="30" style="touch-action: none;">
+                                        <defs></defs>
+                                        <path fill="rgb(199, 0, 57)" fill-opacity="1" stroke="rgb(194, 194, 194)" stroke-opacity="0.25098039215686274" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" path="M -4,0 L 0,-4 L 4,0 L 0,4 L -4,0 Z" d="M-4 0L 0-4L 4 0L 0 4L-4 0Z" fill-rule="evenodd" stroke-dasharray="none" dojoGfxStrokeStyle="solid" transform="matrix(1.00000000,0.00000000,0.00000000,1.00000000,15.00000000,15.00000000)"></path>
+                                    </svg>
+                                </div>
+                            </td>
+                            <td>
+                                <table width="95%">
+                                    <tbody>
+                                        <tr>
+                                            <td align="left">&gt; 85-150</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="35" align="center">
+                                <div style="width:30px;height:30px;">
+                                    <svg overflow="hidden" width="30" height="30" style="touch-action: none;">
+                                        <defs></defs>
+                                        <path fill="rgb(255, 87, 51)" fill-opacity="1" stroke="rgb(194, 194, 194)" stroke-opacity="0.25098039215686274" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" path="M -4,0 L 0,-4 L 4,0 L 0,4 L -4,0 Z" d="M-4 0L 0-4L 4 0L 0 4L-4 0Z" fill-rule="evenodd" stroke-dasharray="none" dojoGfxStrokeStyle="solid" transform="matrix(1.00000000,0.00000000,0.00000000,1.00000000,15.00000000,15.00000000)"></path>
+                                    </svg>
+                                </div>
+                            </td>
+                            <td>
+                                <table width="95%">
+                                    <tbody>
+                                        <tr>
+                                            <td align="left">1-85</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+            </div>
+        </div>
+        <div id="featColl_4715_legend_msg" class="esriLegendMsg" style="display: none;">No legend</div>
+    </div>
+    
+    
+</div>
+    </div>
+  </body>
+</html>
